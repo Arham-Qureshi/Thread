@@ -125,6 +125,65 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
       return true;
 
+    case 'MIGRATE_PAYLOAD':
+      (async () => {
+        const PLATFORM_URLS = {
+          chatgpt: 'https://chatgpt.com/',
+          claude: 'https://claude.ai/new',
+          gemini: 'https://gemini.google.com/app',
+        };
+
+        const targetUrl = PLATFORM_URLS[message.platform];
+        if (!targetUrl) {
+          sendResponse({ status: 'error', reason: 'Unknown platform: ' + message.platform });
+          return;
+        }
+
+        const payload = typeof message.payload === 'string'
+          ? message.payload
+          : JSON.stringify(message.payload);
+
+        try {
+          const tab = await chrome.tabs.create({ url: targetUrl });
+
+          // Wait for the new tab to finish loading
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              chrome.tabs.onUpdated.removeListener(listener);
+              reject(new Error('Tab load timed out after 15s'));
+            }, 15000);
+
+            function listener(tabId, changeInfo) {
+              if (tabId === tab.id && changeInfo.status === 'complete') {
+                chrome.tabs.onUpdated.removeListener(listener);
+                clearTimeout(timeout);
+                resolve();
+              }
+            }
+            chrome.tabs.onUpdated.addListener(listener);
+          });
+
+          // Buffer for framework hydration
+          await new Promise((r) => setTimeout(r, 1500));
+
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['generic_injector.bundle.js'],
+          });
+
+          const res = await chrome.tabs.sendMessage(tab.id, {
+            action: 'THREAD_INJECT_PAYLOAD',
+            payload,
+          });
+
+          sendResponse(res || { status: 'ok' });
+        } catch (err) {
+          console.error('[Thread] Migration failed:', err);
+          sendResponse({ status: 'error', reason: err.message });
+        }
+      })();
+      return true;
+
     default:
       sendResponse({ status: 'error', reason: 'unknown_action' });
   }
