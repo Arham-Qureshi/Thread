@@ -2,6 +2,9 @@
   if (window.__threadInjectorReady) return;
   window.__threadInjectorReady = true;
 
+  const MAX_RETRIES = 10;
+  const RETRY_INTERVAL_MS = 500;
+
   function isVisible(el) {
     const rect = el.getBoundingClientRect();
     const style = getComputedStyle(el);
@@ -17,23 +20,35 @@
   }
 
   function locateInput() {
-    const lowerBoundary = window.innerHeight * 0.7;
     const candidates = Array.from(document.querySelectorAll('textarea, div[contenteditable="true"]'))
       .filter((el) => isEditable(el) && isVisible(el))
       .map((el) => {
         const rect = el.getBoundingClientRect();
-        return {
-          el,
-          rect,
-          score: (rect.top >= lowerBoundary ? 1000 : 0)
-            + Math.max(0, rect.bottom - lowerBoundary)
-            + rect.height,
-        };
-      })
-      .filter(({ rect }) => rect.bottom >= lowerBoundary);
+        return { el, rect, score: rect.top + rect.height };
+      });
 
     candidates.sort((a, b) => b.score - a.score);
     return candidates[0]?.el || null;
+  }
+
+  // handles framework hydration delays
+  function locateInputWithRetry() {
+    return new Promise((resolve, reject) => {
+      let attempts = 0;
+      const timer = setInterval(() => {
+        const input = locateInput();
+        if (input) {
+          clearInterval(timer);
+          resolve(input);
+          return;
+        }
+        attempts++;
+        if (attempts >= MAX_RETRIES) {
+          clearInterval(timer);
+          reject(new Error('No textarea or contenteditable input found after ' + (MAX_RETRIES * RETRY_INTERVAL_MS / 1000) + 's'));
+        }
+      }, RETRY_INTERVAL_MS);
+    });
   }
 
   function focusInput(input) {
@@ -46,6 +61,36 @@
       selection.removeAllRanges();
       selection.addRange(range);
     }
+  }
+
+  function setNativeValue(input, text) {
+    if (input.matches('textarea')) {
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLTextAreaElement.prototype, 'value'
+      )?.set;
+
+      if (nativeSetter) {
+        nativeSetter.call(input, text);
+      } else {
+        input.value = text;
+      }
+
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    }
+
+    if (input.isContentEditable) {
+      focusInput(input);
+      const pasted = dispatchPaste(input, text);
+      if (!pasted) {
+        input.textContent = text;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      return true;
+    }
+
+    return false;
   }
 
   function dispatchPaste(input, text) {
@@ -75,27 +120,20 @@
     input.dispatchEvent(new KeyboardEvent('keyup', eventInit));
   }
 
-  function injectPayload(jsonString) {
-    const input = locateInput();
-    if (!input) {
-      throw new Error('No textarea or contenteditable input found in lower viewport');
-    }
-
+  async function injectPayload(text) {
+    const input = await locateInputWithRetry();
     focusInput(input);
-    dispatchPaste(input, jsonString);
-    setTimeout(() => dispatchEnter(input), 50);
+    setNativeValue(input, text);
+    setTimeout(() => dispatchEnter(input), 150);
   }
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action !== 'THREAD_INJECT_PAYLOAD') return false;
 
-    try {
-      injectPayload(message.payload);
-      sendResponse({ status: 'ok' });
-    } catch (err) {
-      sendResponse({ status: 'error', reason: err.message });
-    }
+    injectPayload(message.payload)
+      .then(() => sendResponse({ status: 'ok' }))
+      .catch((err) => sendResponse({ status: 'error', reason: err.message }));
 
-    return false;
+    return true; // Keep message channel open for async response
   });
 })();
