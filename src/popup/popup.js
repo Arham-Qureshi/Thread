@@ -316,9 +316,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function handleMigration(platformId) {
     closeModal();
-    showToast('Migrating to ' + platformId + '…');
-    console.log('[Thread] Migration target:', platformId);
-    console.log('[Thread] Payload:', currentMigrationPayload);
+    showToast('Opening ' + platformId + '…');
+    setLoading(injectBtn, true);
+
+    const payload = 'Reconstruct our current state based on this graph. '
+      + 'Use it as compact context for the next task, then wait for my instruction.\n\n'
+      + currentMigrationPayload;
+
+    chrome.runtime.sendMessage(
+      { action: 'MIGRATE_PAYLOAD', platform: platformId, payload },
+      (res) => {
+        setLoading(injectBtn, false);
+        if (chrome.runtime.lastError || res?.status === 'error') {
+          showToast('Migration failed: ' + (res?.reason || chrome.runtime.lastError?.message));
+        } else {
+          showToast('Context injected into ' + platformId);
+        }
+      }
+    );
   }
 
   modalCloseBtn.addEventListener('click', closeModal);
