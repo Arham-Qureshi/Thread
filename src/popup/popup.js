@@ -160,38 +160,16 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Extracting from active tab…');
 
     chrome.runtime.sendMessage({ action: 'EXTRACT_DOM' }, (res) => {
+      extractBtn.classList.remove('loading');
+      extractBtn.disabled = false;
+
       if (chrome.runtime.lastError || res?.status === 'error') {
         showToast('Extraction failed: ' + (res?.reason || chrome.runtime.lastError?.message));
-        extractBtn.classList.remove('loading');
-        extractBtn.disabled = false;
         return;
       }
 
-      // Wait for content script to finish, then process the graph
-      setTimeout(() => {
-        chrome.storage.local.get('extractedData', (data) => {
-          const turns = data.extractedData;
-          if (!turns || !turns.length) {
-            showToast('No conversation found on this page');
-            extractBtn.classList.remove('loading');
-            extractBtn.disabled = false;
-            return;
-          }
-
-          showToast('Building graph from ' + turns.length + ' turns…');
-          chrome.runtime.sendMessage({ action: 'PROCESS_GRAPH', payload: turns }, (graphRes) => {
-            extractBtn.classList.remove('loading');
-            extractBtn.disabled = false;
-
-            if (graphRes?.status === 'ok') {
-              updateUI(graphRes.graph);
-              showToast('Graph ready — ' + graphRes.graph.nodes.length + ' nodes');
-            } else {
-              showToast('Graph processing failed: ' + (graphRes?.reason || 'unknown'));
-            }
-          });
-        });
-      }, 600);
+      updateUI(res.graph);
+      showToast('Graph ready — ' + res.graph.nodes.length + ' nodes');
     });
   });
 
@@ -212,8 +190,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       injectBtn.classList.add('loading');
       injectBtn.disabled = true;
+      const payload = 'Reconstruct our current state based on this graph. Use it as compact context for the next task, then wait for my instruction.\n\n'
+        + JSON.stringify(data.migrationState);
+
       chrome.runtime.sendMessage(
-        { action: 'INJECT_PAYLOAD', payload: data.migrationState },
+        { action: 'INJECT_PAYLOAD', payload },
         (res) => {
           injectBtn.classList.remove('loading');
           injectBtn.disabled = false;
