@@ -59,9 +59,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
 
     case 'INJECT_PAYLOAD':
-      console.log('[Thread] INJECT_PAYLOAD received');
-      sendResponse({ status: 'ok', action: 'INJECT_PAYLOAD' });
-      break;
+      chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
+        const payload = typeof message.payload === 'string'
+          ? message.payload
+          : JSON.stringify(message.payload);
+
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['generic_injector.bundle.js'],
+        }).then(() => chrome.tabs.sendMessage(tab.id, {
+          action: 'THREAD_INJECT_PAYLOAD',
+          payload,
+        })).then((res) => {
+          sendResponse(res || { status: 'ok' });
+        }).catch((err) => {
+          sendResponse({ status: 'error', reason: err.message });
+        });
+      });
+      return true;
 
     default:
       sendResponse({ status: 'error', reason: 'unknown_action' });
