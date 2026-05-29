@@ -9,26 +9,81 @@ const wasmReady = initWasm()
     throw err;
   });
 
+let pendingExtraction = null;
+
+async function buildGraph(messages) {
+  await wasmReady;
+
+  const engine = getEngine();
+  if (!engine) {
+    throw new Error('WASM engine initialized without an engine instance');
+  }
+
+  const graphJson = engine.buildGraph(JSON.stringify(messages));
+  return JSON.parse(graphJson);
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.action) {
     case 'EXTRACT_DOM':
+      if (pendingExtraction) {
+        sendResponse({ status: 'error', reason: 'Extraction already in progress' });
+        return true;
+      }
+
+      pendingExtraction = {
+        sendResponse,
+        timeoutId: setTimeout(() => {
+          if (!pendingExtraction) return;
+          pendingExtraction.sendResponse({ status: 'error', reason: 'Extraction timed out' });
+          pendingExtraction = null;
+        }, 8000),
+      };
+
       chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
         chrome.scripting.executeScript({
           target: { tabId: tab.id },
           files: ['generic_extractor.bundle.js'],
-        }).then(() => {
-          sendResponse({ status: 'injected', tabId: tab.id });
         }).catch((err) => {
+          if (pendingExtraction) clearTimeout(pendingExtraction.timeoutId);
+          pendingExtraction = null;
           sendResponse({ status: 'error', reason: err.message });
         });
       });
       return true;
 
     case 'EXTRACT_COMPLETE':
-      console.log('[Thread] Extraction complete:', message.payload?.length, 'turns');
-      chrome.storage.local.set({ extractedData: message.payload });
-      sendResponse({ status: 'stored', count: message.payload?.length });
-      break;
+      (async () => {
+        const messages = Array.isArray(message.payload) ? message.payload : [];
+        console.log('[Thread] Extraction complete:', messages.length, 'turns');
+        await chrome.storage.local.set({ extractedData: messages });
+
+        if (!pendingExtraction) {
+          sendResponse({ status: 'stored', count: messages.length });
+          return;
+        }
+
+        const pending = pendingExtraction;
+        pendingExtraction = null;
+        clearTimeout(pending.timeoutId);
+
+        try {
+          if (!messages.length) {
+            throw new Error('No conversation found on this page');
+          }
+
+          const graph = await buildGraph(messages);
+          await chrome.storage.local.set({ migrationState: graph });
+          console.log('[Thread] Graph built via WASM');
+          console.log('[Thread] Graph:', graph.nodes?.length, 'nodes,', graph.edges?.length, 'edges');
+          pending.sendResponse({ status: 'ok', graph, count: messages.length });
+          sendResponse({ status: 'stored', count: messages.length });
+        } catch (err) {
+          pending.sendResponse({ status: 'error', reason: err.message });
+          sendResponse({ status: 'error', reason: err.message });
+        }
+      })();
+      return true;
 
     case 'PROCESS_GRAPH':
       (async () => {
@@ -37,15 +92,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             ? message.payload
             : JSON.parse(message.payload);
 
-          await wasmReady;
-
-          const engine = getEngine();
-          if (!engine) {
-            throw new Error('WASM engine initialized without an engine instance');
-          }
-
-          const graphJson = engine.buildGraph(JSON.stringify(messages));
-          const graph = JSON.parse(graphJson);
+          const graph = await buildGraph(messages);
 
           chrome.storage.local.set({ migrationState: graph });
           console.log('[Thread] Graph built via WASM');
