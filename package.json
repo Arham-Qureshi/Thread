@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "Universal, stateful context migration between any LLMs",
   "scripts": {
+    "build:wasm": "make -C src/wasm_engine",
     "build": "webpack --mode production",
+    "build:all": "npm run build:wasm && npm run build",
     "dev": "webpack --mode development --watch"
   },
   "devDependencies": {
