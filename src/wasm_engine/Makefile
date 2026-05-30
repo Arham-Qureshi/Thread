@@ -11,7 +11,6 @@ CFLAGS = -O2 \
 	-s EXPORT_ES6=1 \
 	-s EXPORTED_FUNCTIONS="['_processString', '_buildGraph', '_malloc', '_free']" \
 	-s EXPORTED_RUNTIME_METHODS="['ccall','cwrap','UTF8ToString']" \
-	-s ENVIRONMENT='web' \
 	-s ALLOW_MEMORY_GROWTH=1 \
 	-s NO_EXIT_RUNTIME=1 \
 	--no-entry
