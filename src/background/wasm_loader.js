@@ -8,9 +8,11 @@ export async function initWasm() {
   );
 
   const wasmUrl = chrome.runtime.getURL('thread_engine.wasm');
+  const baseDir = chrome.runtime.getURL('');
 
   const module = await createThreadEngine({
-    locateFile: (path) => (path.endsWith('.wasm') ? wasmUrl : path),
+    locateFile: (path) => (path.endsWith('.wasm') ? wasmUrl : baseDir + path),
+    scriptDirectory: baseDir,
   });
 
   engineInstance = {
