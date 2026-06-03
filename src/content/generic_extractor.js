@@ -124,6 +124,39 @@
     return messages;
   }
 
-  const result = extractChatHistory();
+  function extractFromSelection() {
+    const raw = window.getSelection().toString().trim();
+    if (!raw) return [];
+
+    const rolePattern = /^(You|User|Human|Assistant|ChatGPT|Claude|AI|Model)\s*:/im;
+    const segments = raw.split(new RegExp(`(?=^(?:You|User|Human|Assistant|ChatGPT|Claude|AI|Model)\\s*:)`, 'im'));
+    const messages = [];
+
+    for (const seg of segments) {
+      const text = seg.trim();
+      if (!text) continue;
+
+      const match = text.match(rolePattern);
+      let role = messages.length % 2 === 0 ? 'user' : 'assistant';
+      let content = text;
+
+      if (match) {
+        const label = match[1].toLowerCase();
+        role = ['you', 'user', 'human'].includes(label) ? 'user' : 'assistant';
+        content = text.slice(match[0].length).trim();
+      }
+
+      if (content) messages.push({ role, content });
+    }
+
+    if (!messages.length && raw) {
+      messages.push({ role: 'user', content: raw });
+    }
+
+    return messages;
+  }
+
+  let result = extractChatHistory();
+  if (!result.length) result = extractFromSelection();
   chrome.runtime.sendMessage({ action: 'EXTRACT_COMPLETE', payload: result });
 })();
