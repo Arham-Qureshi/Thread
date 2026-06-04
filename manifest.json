@@ -9,14 +9,14 @@
     "scripting"
   ],
   "host_permissions": [
-    "*://*/*"
+    "<all_urls>"
   ],
   "background": {
-    "service_worker": "dist/background.bundle.js",
+    "service_worker": "background.bundle.js",
     "type": "module"
   },
   "action": {
-    "default_popup": "dist/popup.html",
+    "default_popup": "popup.html",
     "default_title": "Open Thread View"
   },
   "content_security_policy": {
