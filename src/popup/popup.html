@@ -1,15 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=480">
+  <title>Thread</title>
   <link rel="stylesheet" href="popup.css">
 </head>
+
 <body>
   <div id="popup-root">
-    <h1>Thread</h1>
-    <button id="btn-extract">Extract Context</button>
-    <p id="status"></p>
+
+    <header id="popup-header">
+      <div class="header-left">
+        <span class="logo-icon">⚡</span>
+        <h1>Thread</h1>
+      </div>
+      <span id="model-status" class="caption">No context loaded</span>
+    </header>
+
+    <main id="canvas-area">
+      <div id="cy-container">
+        <p id="canvas-placeholder" class="caption">Extract a conversation to see the context graph.</p>
+      </div>
+      <div id="state-info" class="hidden">
+        <span id="node-count" class="badge">0 nodes</span>
+        <span id="edge-count" class="badge">0 edges</span>
+      </div>
+    </main>
+
+    <footer id="action-bar">
+      <button id="btn-clear" class="btn btn-secondary" disabled>
+        <span class="btn-icon">✕</span> Clear
+      </button>
+      <button id="btn-extract" class="btn btn-primary">
+        <span class="btn-icon">↓</span> Extract
+      </button>
+      <button id="btn-inject" class="btn btn-accent" disabled>
+        <span class="btn-icon">→</span> Inject
+      </button>
+    </footer>
+
+    <div id="status-toast" class="toast hidden"></div>
   </div>
+
   <script src="popup.bundle.js"></script>
 </body>
+
 </html>
