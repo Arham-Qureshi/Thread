@@ -18,6 +18,14 @@ module.exports = {
     // Crucial for MV3 Service Workers
     splitChunks: false,
   },
+  module: {
+    parser: {
+      javascript: {
+        // not let Webpack rewrite its fallback new URL() into a hashed asset.
+        url: false,
+      },
+    },
+  },
   plugins: [
     new CopyPlugin({
       patterns: [
