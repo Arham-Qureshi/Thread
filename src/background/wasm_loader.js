@@ -1,11 +1,9 @@
+import createThreadEngine from '../wasm_engine/build/thread_engine.js';
+
 let engineInstance = null;
 
 export async function initWasm() {
   if (engineInstance) return engineInstance;
-
-  const { default: createThreadEngine } = await import(
-    /* webpackIgnore: true */ './thread_engine.js'
-  );
 
   const wasmUrl = chrome.runtime.getURL('thread_engine.wasm');
   const baseDir = chrome.runtime.getURL('');
