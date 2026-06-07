@@ -1,4 +1,5 @@
-EMCC = emcc
+LOCAL_EMCC = ../../emsdk/upstream/emscripten/emcc
+EMCC ?= $(if $(wildcard $(LOCAL_EMCC)),$(LOCAL_EMCC),emcc)
 SRC = GraphBuilder.cpp
 OUT_DIR = build
 OUT_JS = $(OUT_DIR)/thread_engine.js
@@ -9,6 +10,7 @@ CFLAGS = -O2 \
 	-s MODULARIZE=1 \
 	-s EXPORT_NAME="createThreadEngine" \
 	-s EXPORT_ES6=1 \
+	-s ENVIRONMENT=worker \
 	-s EXPORTED_FUNCTIONS="['_processString', '_buildGraph', '_malloc', '_free']" \
 	-s EXPORTED_RUNTIME_METHODS="['ccall','cwrap','UTF8ToString']" \
 	-s ALLOW_MEMORY_GROWTH=1 \
