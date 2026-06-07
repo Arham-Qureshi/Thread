@@ -99,15 +99,19 @@ body {
 
 #cy-container {
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
+  min-height: 0;
+  width: 100%;
   background-image: radial-gradient(circle, var(--border-subtle) 1px, transparent 1px);
   background-size: 20px 20px;
   background-position: center;
 }
 
 #canvas-placeholder {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  height: fit-content;
   text-align: center;
   padding: 32px;
   max-width: 280px;
