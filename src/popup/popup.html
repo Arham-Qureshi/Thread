@@ -85,6 +85,44 @@
       </button>
     </footer>
 
+    <div id="migration-modal" class="modal-overlay hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Migrate Thread</h2>
+          <button id="modal-close" class="modal-close" aria-label="Close modal">
+            <svg viewBox="0 0 24 24">
+              <path d="M18 6L6 18M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <p class="modal-subtitle">Select your destination platform</p>
+        <div class="platform-cards">
+          <button class="platform-card" data-platform="chatgpt">
+            <svg class="platform-logo" viewBox="0 0 24 24">
+              <path d="M22.28 14.37a5.07 5.07 0 0 0-.44-4.16 5.12 5.12 0 0 0-5.52-2.49 5.07 5.07 0 0 0-3.82-1.7 5.12 5.12 0 0 0-4.88 3.54 5.07 5.07 0 0 0-3.39 2.46 5.12 5.12 0 0 0 .63 5.99 5.07 5.07 0 0 0 .44 4.16 5.12 5.12 0 0 0 5.52 2.49 5.07 5.07 0 0 0 3.82 1.7 5.12 5.12 0 0 0 4.88-3.54 5.07 5.07 0 0 0 3.39-2.46 5.12 5.12 0 0 0-.63-5.99z"></path>
+              <path d="M9.81 19.07V13.6l4.65 2.73"></path>
+              <path d="M14.46 4.93l-4.65 2.73V13.6"></path>
+            </svg>
+            <span class="platform-name">ChatGPT</span>
+          </button>
+          <button class="platform-card" data-platform="claude">
+            <svg class="platform-logo" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" fill="none" stroke-width="1.5"></circle>
+              <path d="M12 6v12M8.5 8l7 8M15.5 8l-7 8"></path>
+            </svg>
+            <span class="platform-name">Claude</span>
+          </button>
+          <button class="platform-card" data-platform="gemini">
+            <svg class="platform-logo" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="none" stroke-width="1.5"></path>
+              <path d="M12 2c3 3.6 3 14.4 0 20M12 2c-3 3.6-3 14.4 0 20M2 12h20"></path>
+            </svg>
+            <span class="platform-name">Gemini</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div id="status-toast" class="toast hidden"></div>
   </div>
 
