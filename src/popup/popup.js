@@ -300,28 +300,48 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Inject Context
+  // Migration Modal
+  const migrationModal = document.getElementById('migration-modal');
+  const modalCloseBtn = document.getElementById('modal-close');
+  const platformCards = document.querySelectorAll('.platform-card');
+  let currentMigrationPayload = null;
+
+  function openModal() {
+    migrationModal.classList.remove('hidden');
+  }
+
+  function closeModal() {
+    migrationModal.classList.add('hidden');
+  }
+
+  function handleMigration(platformId) {
+    closeModal();
+    showToast('Migrating to ' + platformId + '…');
+    console.log('[Thread] Migration target:', platformId);
+    console.log('[Thread] Payload:', currentMigrationPayload);
+  }
+
+  modalCloseBtn.addEventListener('click', closeModal);
+
+  migrationModal.addEventListener('click', (e) => {
+    if (e.target === migrationModal) closeModal();
+  });
+
+  platformCards.forEach((card) => {
+    card.addEventListener('click', () => {
+      handleMigration(card.dataset.platform);
+    });
+  });
+
+  // Inject (opens migration modal)
   injectBtn.addEventListener('click', () => {
     chrome.storage.local.get('migrationState', (data) => {
       if (!data.migrationState) {
         showToast('Nothing to inject — extract first');
         return;
       }
-      setLoading(injectBtn, true);
-      const payload = 'Reconstruct our current state based on this graph. Use it as compact context for the next task, then wait for my instruction.\n\n'
-        + JSON.stringify(data.migrationState);
-
-      chrome.runtime.sendMessage(
-        { action: 'INJECT_PAYLOAD', payload },
-        (res) => {
-          setLoading(injectBtn, false);
-          if (res?.status === 'ok') {
-            showToast('Context injected into active tab');
-          } else {
-            showToast('Injection failed: ' + (res?.reason || 'unknown'));
-          }
-        }
-      );
+      currentMigrationPayload = JSON.stringify(data.migrationState);
+      openModal();
     });
   });
 });
