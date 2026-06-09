@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
           style: {
             shape: 'round-rectangle',
             'background-color': userColor,
-            color: '#fff', /* Ensure text is readable on vibrant blue */
+            color: '#fff',
             'border-width': 0,
           },
         },
@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
           style: {
             shape: 'round-rectangle',
             'background-color': assistantColor,
-            color: '#fff', /* Ensure text is readable on purple */
+            color: '#fff',
             'border-width': 0,
           },
         },
