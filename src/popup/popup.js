@@ -45,14 +45,63 @@ document.addEventListener('DOMContentLoaded', () => {
     toastTimer = setTimeout(() => toast.classList.remove('visible'), duration);
   }
 
+  function extractKeywords(text) {
+    if (!text || typeof text !== 'string') return '';
+    const words = text.match(/\b[A-Za-z_][A-Za-z0-9_]*\b/g) || [];
+    const scores = new Map();
+
+    for (const word of words) {
+      // Skip very short words
+      if (word.length <= 3 && word === word.toLowerCase()) continue;
+
+      let score = 1;
+      if (/^[A-Z]/.test(word)) score += 2;
+      // analyzing code pattern
+      if (/[0-9_]/.test(word) || (/[a-z]/.test(word) && /[A-Z]/.test(word))) score += 3;
+      score += Math.min(word.length / 5, 2);
+
+      const key = word.toLowerCase();
+      scores.set(key, (scores.get(key) || 0) + score);
+    }
+
+    const sorted = [...scores.entries()].sort((a, b) => b[1] - a[1]);
+    if (!sorted.length) return text.split(' ').slice(0, 2).join(' ').substring(0, 20);
+    return sorted.slice(0, 2).map(e => e[0].charAt(0).toUpperCase() + e[0].slice(1)).join(' ');
+  }
+
+  function extractUrlLabel(urlStr) {
+    try {
+      const url = new URL(urlStr);
+      const parts = url.hostname.replace(/^www\./, '').split('.');
+      const domain = parts.length > 1 ? parts[parts.length - 2] : parts[0];
+
+      if (['github', 'google', 'wikipedia', 'npmjs', 'youtube'].includes(domain) && url.pathname.length > 1) {
+        const pathSeg = url.pathname.split('/').find(Boolean);
+        if (pathSeg) return pathSeg.charAt(0).toUpperCase() + pathSeg.slice(1);
+      }
+      return domain.charAt(0).toUpperCase() + domain.slice(1);
+    } catch (e) {
+      return extractKeywords(urlStr);
+    }
+  }
+
+  function generateNodeLabel(content, type) {
+    if (!content) return type.charAt(0).toUpperCase() + type.slice(1);
+    if (type === 'link') return extractUrlLabel(content);
+    return extractKeywords(content);
+  }
+
   function graphElements(graph) {
-    const nodes = (graph.nodes || []).map((node) => ({
-      data: {
-        id: node.id,
-        label: node.subtype || node.role || node.type || node.id,
-        type: node.role || node.subtype || node.type || 'artifact',
-      },
-    }));
+    const nodes = (graph.nodes || []).map((node) => {
+      const type = node.role || node.subtype || node.type || 'artifact';
+      return {
+        data: {
+          id: node.id,
+          label: generateNodeLabel(node.content, type),
+          type: type,
+        },
+      };
+    });
 
     const edges = (graph.edges || []).map((edge, index) => ({
       data: {
