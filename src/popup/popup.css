@@ -7,8 +7,14 @@
 
   --brand-accent: #4fd1c5;
   --brand-accent-hover: #38b2ac;
-  --node-task: #ebf8ff;
-  --node-artifact: #f7fafc;
+
+  /* Node Categories */
+  --node-user: #3b82f6;      /* Blue */
+  --node-assistant: #a855f7; /* Purple */
+  --node-variable: #22c55e;  /* Green */
+  --node-link: #f97316;      /* Orange */
+  --node-artifact: #f7fafc;  /* Fallback */
+
   --danger: #fc8181;
   --danger-hover: #f56565;
   --success: #68d391;
@@ -30,8 +36,14 @@
 
     --brand-accent: #319795;
     --brand-accent-hover: #285e61;
-    --node-task: #2a4365;
+
+    /* Node Categories Dark Mode */
+    --node-user: #2563eb;
+    --node-assistant: #9333ea;
+    --node-variable: #16a34a;
+    --node-link: #ea580c;
     --node-artifact: #2d3748;
+
     --danger: #e53e3e;
     --danger-hover: #c53030;
     --success: #38a169;
@@ -188,6 +200,52 @@ body {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
+/* ── Graph Legend ──────────────────────── */
+
+#graph-legend {
+  position: absolute;
+  top: 16px;
+  right: 64px; /* Offset to avoid expand button */
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  #graph-legend {
+    background: rgba(30, 32, 36, 0.4);
+  }
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: var(--shadow-out);
+}
+
+.swatch-user { background: var(--node-user); }
+.swatch-assistant { background: var(--node-assistant); }
+.swatch-variable { background: var(--node-variable); }
+.swatch-link { background: var(--node-link); }
 
 #state-info {
   display: flex;
