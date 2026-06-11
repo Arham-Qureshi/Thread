@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
       data: {
         id: node.id,
         label: node.subtype || node.role || node.type || node.id,
-        type: node.type || 'artifact',
+        type: node.role || node.subtype || node.type || 'artifact',
       },
     }));
 
@@ -85,7 +85,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cy) cy.destroy();
     const textColor = cssVar('--text-primary');
     const borderColor = cssVar('--border-subtle');
-    const taskColor = cssVar('--node-task');
+    const userColor = cssVar('--node-user');
+    const assistantColor = cssVar('--node-assistant');
+    const variableColor = cssVar('--node-variable');
+    const linkColor = cssVar('--node-link');
     const artifactColor = cssVar('--node-artifact');
 
     cy = cytoscape({
@@ -110,10 +113,39 @@ document.addEventListener('DOMContentLoaded', () => {
           },
         },
         {
-          selector: 'node[type = "task"]',
+          selector: 'node[type = "user"]',
+          style: {
+            shape: 'round-rectangle',
+            'background-color': userColor,
+            color: '#fff', /* Ensure text is readable on vibrant blue */
+            'border-width': 0,
+          },
+        },
+        {
+          selector: 'node[type = "assistant"]',
+          style: {
+            shape: 'round-rectangle',
+            'background-color': assistantColor,
+            color: '#fff', /* Ensure text is readable on purple */
+            'border-width': 0,
+          },
+        },
+        {
+          selector: 'node[type = "variable"]',
           style: {
             shape: 'ellipse',
-            'background-color': taskColor,
+            'background-color': variableColor,
+            color: '#fff',
+            'border-width': 0,
+          },
+        },
+        {
+          selector: 'node[type = "link"]',
+          style: {
+            shape: 'hexagon',
+            'background-color': linkColor,
+            color: '#fff',
+            'border-width': 0,
           },
         },
         {
