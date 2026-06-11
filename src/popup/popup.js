@@ -11,9 +11,31 @@ document.addEventListener('DOMContentLoaded', () => {
   const nodeCount = document.getElementById('node-count');
   const edgeCount = document.getElementById('edge-count');
   const toast = document.getElementById('status-toast');
+  const expandBtn = document.getElementById('btn-expand');
+  const iconExpand = document.getElementById('icon-expand');
+  const iconCollapse = document.getElementById('icon-collapse');
+  const canvasArea = document.getElementById('canvas-area');
 
   let toastTimer = null;
   let cy = null;
+
+  const spinnerSvg = `<svg class="spinner-icon" viewBox="0 0 50 50"><circle cx="25" cy="25" r="20"></circle></svg>`;
+
+  function setLoading(btn, isLoading) {
+    const iconContainer = btn.querySelector('.btn-icon');
+    if (isLoading) {
+      btn.dataset.originalIcon = iconContainer.innerHTML;
+      iconContainer.innerHTML = spinnerSvg;
+      btn.classList.add('loading');
+      btn.disabled = true;
+    } else {
+      if (btn.dataset.originalIcon) {
+        iconContainer.innerHTML = btn.dataset.originalIcon;
+      }
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  }
 
   function showToast(msg, duration = 2500) {
     toast.textContent = msg;
@@ -153,15 +175,31 @@ document.addEventListener('DOMContentLoaded', () => {
     updateUI(data.migrationState);
   });
 
+  // Toggle Expanded View
+  expandBtn.addEventListener('click', () => {
+    const isExpanded = canvasArea.classList.toggle('expanded');
+    if (isExpanded) {
+      iconExpand.style.display = 'none';
+      iconCollapse.style.display = 'block';
+    } else {
+      iconExpand.style.display = 'block';
+      iconCollapse.style.display = 'none';
+    }
+    setTimeout(() => {
+      if (cy) {
+        cy.resize();
+        cy.fit(undefined, 28);
+      }
+    }, 400);
+  });
+
   // Extract Context
   extractBtn.addEventListener('click', () => {
-    extractBtn.classList.add('loading');
-    extractBtn.disabled = true;
+    setLoading(extractBtn, true);
     showToast('Extracting from active tab…');
 
     chrome.runtime.sendMessage({ action: 'EXTRACT_DOM' }, (res) => {
-      extractBtn.classList.remove('loading');
-      extractBtn.disabled = false;
+      setLoading(extractBtn, false);
 
       if (chrome.runtime.lastError || res?.status === 'error') {
         showToast('Extraction failed: ' + (res?.reason || chrome.runtime.lastError?.message));
@@ -188,16 +226,14 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Nothing to inject — extract first');
         return;
       }
-      injectBtn.classList.add('loading');
-      injectBtn.disabled = true;
+      setLoading(injectBtn, true);
       const payload = 'Reconstruct our current state based on this graph. Use it as compact context for the next task, then wait for my instruction.\n\n'
         + JSON.stringify(data.migrationState);
 
       chrome.runtime.sendMessage(
         { action: 'INJECT_PAYLOAD', payload },
         (res) => {
-          injectBtn.classList.remove('loading');
-          injectBtn.disabled = false;
+          setLoading(injectBtn, false);
           if (res?.status === 'ok') {
             showToast('Context injected into active tab');
           } else {
