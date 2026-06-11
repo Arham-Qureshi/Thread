@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=480">
+  <meta name="viewport" content="width=800">
   <title>Thread</title>
   <link rel="stylesheet" href="popup.css">
 </head>
@@ -13,13 +13,25 @@
 
     <header id="popup-header">
       <div class="header-left">
-        <span class="logo-icon">⚡</span>
+        <svg class="logo-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+        </svg>
         <h1>Thread</h1>
       </div>
       <span id="model-status" class="caption">No context loaded</span>
     </header>
 
     <main id="canvas-area">
+      <button id="btn-expand" aria-label="Expand graph">
+        <svg id="icon-expand" viewBox="0 0 24 24">
+          <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path>
+        </svg>
+        <svg id="icon-collapse" viewBox="0 0 24 24" style="display: none;">
+          <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7"></path>
+        </svg>
+      </button>
+
       <div id="cy-container">
         <p id="canvas-placeholder" class="caption">Extract a conversation to see the context graph.</p>
       </div>
@@ -31,13 +43,30 @@
 
     <footer id="action-bar">
       <button id="btn-clear" class="btn btn-secondary" disabled>
-        <span class="btn-icon">✕</span> Clear
+        <span class="btn-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M18 6L6 18M6 6l12 12"></path>
+          </svg>
+        </span>
+        <span class="btn-text">Clear</span>
       </button>
+
       <button id="btn-extract" class="btn btn-primary">
-        <span class="btn-icon">↓</span> Extract
+        <span class="btn-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 5v14M19 12l-7 7-7-7"></path>
+          </svg>
+        </span>
+        <span class="btn-text">Extract</span>
       </button>
+
       <button id="btn-inject" class="btn btn-accent" disabled>
-        <span class="btn-icon">→</span> Inject
+        <span class="btn-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M5 12h14M12 5l7 7-7 7"></path>
+          </svg>
+        </span>
+        <span class="btn-text">Inject</span>
       </button>
     </footer>
 
