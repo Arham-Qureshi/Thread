@@ -1,30 +1,72 @@
 (function () {
-  function findChatContainer() {
-    const main = document.querySelector('main');
-    if (main) {
-      const scrollable = findDeepestScrollable(main);
-      return scrollable || main;
-    }
-    return findDeepestScrollable(document.body) || document.body;
+  // not using hardcoded platform detection method
+  function detectPlatform() {
+    const host = window.location.hostname;
+    if (host.includes('chat.openai') || host.includes('chatgpt')) return 'chatgpt';
+    if (host.includes('claude')) return 'claude';
+    if (host.includes('gemini')) return 'gemini';
+    return 'generic';
   }
 
-  function findDeepestScrollable(root) {
+  // chat for chat area to parse for a graph it 
+  // otherwise it will whole sidebar context and kaboom!
+  const EXCLUDED_TAGS = new Set(['nav', 'aside', 'header', 'footer']);
+  const EXCLUDED_ROLES = new Set([
+    'navigation', 'complementary', 'banner', 'contentinfo', 'menubar',
+  ]);
+  const EXCLUDED_PATTERN = /sidebar|history|menu|drawer|panel|nav[-_]/i;
+
+  function isExcludedZone(el) {
+    let node = el;
+    while (node && node !== document.body) {
+      const tag = node.tagName?.toLowerCase();
+      if (EXCLUDED_TAGS.has(tag)) return true;
+      const role = node.getAttribute?.('role');
+      if (role && EXCLUDED_ROLES.has(role)) return true;
+      const id = node.id || '';
+      const cls = typeof node.className === 'string' ? node.className : '';
+      if (EXCLUDED_PATTERN.test(id + ' ' + cls)) return true;
+      node = node.parentElement;
+    }
+    return false;
+  }
+  // searching for chat container
+  function findChatContainer() {
+    const platform = detectPlatform();
+    const main = document.querySelector('main');
+    const root = (main && !isExcludedZone(main)) ? main : document.body;
+
     let best = null;
     let bestScore = 0;
+
     for (const el of root.querySelectorAll('*')) {
       if (el.scrollHeight <= el.clientHeight + 50 || el.children.length < 2) continue;
-      const score = el.scrollHeight * el.children.length;
+      if (isExcludedZone(el)) continue;
+
+      let score = el.scrollHeight * el.children.length;
+
+      // try hit method ,main is used by generally major platform
+      if (el.tagName.toLowerCase() === 'main') {
+        score += platform !== 'generic' ? 1500 : 500;
+      }
+
+      // chat containers typically dominate the viewport width
+      const rect = el.getBoundingClientRect();
+      if (rect.width > window.innerWidth * 0.5) score += 500;
+
       if (score > bestScore) {
         bestScore = score;
         best = el;
       }
     }
-    return best;
+
+    return best || root;
   }
 
   function findTurnElements(container) {
-    const articles = container.querySelectorAll('article');
-    if (articles.length >= 2) return Array.from(articles);
+    const articles = Array.from(container.querySelectorAll('article'))
+      .filter((el) => !isExcludedZone(el));
+    if (articles.length >= 2) return articles;
 
     let best = [];
     let bestScore = 0;
@@ -34,7 +76,7 @@
       const next = [];
       for (const parent of queue) {
         const children = Array.from(parent.children).filter(
-          (el) => el.offsetHeight > 0 && el.textContent.trim().length > 20
+          (el) => el.offsetHeight > 0 && el.textContent.trim().length > 20 && !isExcludedZone(el)
         );
         if (children.length >= 2) {
           const sameTags = children.every((c) => c.tagName === children[0].tagName);
@@ -70,7 +112,7 @@
     if (node.nodeType !== Node.ELEMENT_NODE) return '';
 
     const tag = node.tagName.toLowerCase();
-    if (['button', 'svg', 'img', 'input', 'nav', 'script', 'style'].includes(tag)) return '';
+    if (['button', 'svg', 'img', 'input', 'nav', 'aside', 'header', 'footer', 'script', 'style'].includes(tag)) return '';
     if (node.offsetHeight === 0 || node.hidden) return '';
 
     if (tag === 'pre') {
