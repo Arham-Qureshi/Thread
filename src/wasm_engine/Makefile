@@ -1,6 +1,6 @@
 LOCAL_EMCC = ../../emsdk/upstream/emscripten/emcc
 EMCC ?= $(if $(wildcard $(LOCAL_EMCC)),$(LOCAL_EMCC),emcc)
-SRC = GraphBuilder.cpp
+SRC = GraphBuilder.cpp textrank.cpp
 OUT_DIR = build
 OUT_JS = $(OUT_DIR)/thread_engine.js
 OUT_WASM = $(OUT_DIR)/thread_engine.wasm
