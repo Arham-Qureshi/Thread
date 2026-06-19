@@ -32,6 +32,7 @@ module.exports = {
         { from: 'manifest.json', to: '.' },
         { from: 'src/popup/popup.html', to: 'popup.html' },
         { from: 'src/popup/popup.css', to: 'popup.css' },
+        { from: 'src/icons', to: 'icons' },
         { from: 'src/wasm_engine/build/thread_engine.wasm', to: 'thread_engine.wasm', noErrorOnMissing: true },
         { from: 'src/wasm_engine/build/thread_engine.js', to: 'thread_engine.js', noErrorOnMissing: true },
       ],
