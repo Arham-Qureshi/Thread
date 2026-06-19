@@ -1,9 +1,11 @@
 import cytoscape from 'cytoscape';
+import { generateMigrationPayload } from './payload_formatter.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   const extractBtn = document.getElementById('btn-extract');
   const clearBtn = document.getElementById('btn-clear');
   const injectBtn = document.getElementById('btn-inject');
+  const copyBtn = document.getElementById('btn-copy');
   const modelStatus = document.getElementById('model-status');
   const cyContainer = document.getElementById('cy-container');
   const placeholder = document.getElementById('canvas-placeholder');
@@ -233,6 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
       modelStatus.textContent = graph.nodes.length + ' nodes extracted';
       clearBtn.disabled = false;
       injectBtn.disabled = false;
+      copyBtn.disabled = false;
       renderGraph(graph);
     } else {
       placeholder.style.display = '';
@@ -240,6 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
       modelStatus.textContent = 'No context loaded';
       clearBtn.disabled = true;
       injectBtn.disabled = true;
+      copyBtn.disabled = true;
       renderGraph(null);
     }
   }
@@ -297,6 +301,33 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.local.remove(['migrationState', 'extractedData'], () => {
       updateUI(null);
       showToast('State cleared');
+    });
+  });
+
+  // Copy to Clipboard 
+  async function copyToClipboard(graphData) {
+    const payload = generateMigrationPayload(graphData);
+    const btnText = copyBtn.querySelector('.btn-text');
+    try {
+      await navigator.clipboard.writeText(payload);
+      btnText.textContent = 'Copied!';
+      copyBtn.classList.add('btn-success');
+      setTimeout(() => {
+        btnText.textContent = 'Copy';
+        copyBtn.classList.remove('btn-success');
+      }, 2000);
+    } catch (err) {
+      showToast('Clipboard failed: ' + err.message);
+    }
+  }
+
+  copyBtn.addEventListener('click', () => {
+    chrome.storage.local.get('migrationState', (data) => {
+      if (!data.migrationState) {
+        showToast('Nothing to copy — extract first');
+        return;
+      }
+      copyToClipboard(data.migrationState);
     });
   });
 
