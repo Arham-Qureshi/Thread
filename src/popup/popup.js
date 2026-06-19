@@ -336,7 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
       + currentMigrationPayload;
 
     chrome.runtime.sendMessage(
-      { action: 'MIGRATE_PAYLOAD', platform: platformId, payload },
+      { action: 'routeInjection', target: platformId, payload },
       (res) => {
         btn.disabled = false;
         btn.textContent = platformId.charAt(0).toUpperCase() + platformId.slice(1);
