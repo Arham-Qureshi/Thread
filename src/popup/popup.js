@@ -131,6 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderGraph(graph) {
+    resetLegendFilters();
     if (!graph || !graph.nodes || !graph.nodes.length) {
       cyContainer.classList.remove('has-graph');
       if (cy) {
@@ -229,6 +230,14 @@ document.addEventListener('DOMContentLoaded', () => {
             'curve-style': 'bezier',
           },
         },
+        {
+          selector: 'node.filtered',
+          style: { display: 'none' },
+        },
+        {
+          selector: 'edge.filtered',
+          style: { display: 'none' },
+        },
       ],
       layout: {
         name: 'cose',
@@ -236,6 +245,38 @@ document.addEventListener('DOMContentLoaded', () => {
         fit: true,
         padding: 28,
       },
+    });
+  }
+
+  function toggleNodeType(type) {
+    if (!cy) return;
+    const nodes = cy.nodes(`[type = "${type}"]`);
+    if (!nodes.length) return;
+    nodes.toggleClass('filtered');
+    cy.edges().forEach(edge => {
+      const srcFiltered = edge.source().hasClass('filtered');
+      const tgtFiltered = edge.target().hasClass('filtered');
+      edge.toggleClass('filtered', srcFiltered || tgtFiltered);
+    });
+  }
+
+  function resetLegendFilters() {
+    document.querySelectorAll('#graph-legend .legend-item').forEach(item => {
+      item.classList.remove('dimmed');
+    });
+    if (cy) {
+      cy.elements().removeClass('filtered');
+    }
+  }
+
+  function setupLegendFilters() {
+    document.querySelectorAll('#graph-legend .legend-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const type = item.dataset.type;
+        if (!type) return;
+        toggleNodeType(type);
+        item.classList.toggle('dimmed');
+      });
     });
   }
 
@@ -397,4 +438,6 @@ document.addEventListener('DOMContentLoaded', () => {
       showInjectMenu();
     });
   });
+
+  setupLegendFilters();
 });
