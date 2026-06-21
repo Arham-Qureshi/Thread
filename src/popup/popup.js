@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const extractBtn = document.getElementById('btn-extract');
   const clearBtn = document.getElementById('btn-clear');
   const injectBtn = document.getElementById('btn-inject');
-  const copyBtn = document.getElementById('btn-copy');
+
   const modelStatus = document.getElementById('model-status');
   const cyContainer = document.getElementById('cy-container');
   const placeholder = document.getElementById('canvas-placeholder');
@@ -235,7 +235,6 @@ document.addEventListener('DOMContentLoaded', () => {
       modelStatus.textContent = graph.nodes.length + ' nodes extracted';
       clearBtn.disabled = false;
       injectBtn.disabled = false;
-      copyBtn.disabled = false;
       renderGraph(graph);
     } else {
       placeholder.style.display = '';
@@ -243,7 +242,6 @@ document.addEventListener('DOMContentLoaded', () => {
       modelStatus.textContent = 'No context loaded';
       clearBtn.disabled = true;
       injectBtn.disabled = true;
-      copyBtn.disabled = true;
       renderGraph(null);
     }
   }
@@ -304,82 +302,81 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Copy to Clipboard 
-  async function copyToClipboard(graphData) {
-    const payload = generateMigrationPayload(graphData);
-    const btnText = copyBtn.querySelector('.btn-text');
-    try {
-      await navigator.clipboard.writeText(payload);
-      btnText.textContent = 'Copied!';
-      copyBtn.classList.add('btn-success');
-      setTimeout(() => {
-        btnText.textContent = 'Copy';
-        copyBtn.classList.remove('btn-success');
-      }, 2000);
-    } catch (err) {
-      showToast('Clipboard failed: ' + err.message);
-    }
-  }
-
-  copyBtn.addEventListener('click', () => {
-    chrome.storage.local.get('migrationState', (data) => {
-      if (!data.migrationState) {
-        showToast('Nothing to copy — extract first');
-        return;
-      }
-      copyToClipboard(data.migrationState);
-    });
-  });
-
-  // Migration Modal
-  const migrationModal = document.getElementById('migration-modal');
-  const modalCloseBtn = document.getElementById('modal-close');
-  const platformCards = document.querySelectorAll('.platform-card');
+  // Inject Menu
+  const injectMenu = document.getElementById('inject-menu');
+  const actionBar = document.getElementById('action-bar');
+  const injectOptions = document.querySelectorAll('.inject-option');
+  const injectCancel = document.querySelector('.inject-cancel');
   let currentMigrationPayload = null;
 
-  function openModal() {
-    migrationModal.classList.remove('hidden');
+  function showInjectMenu() {
+    actionBar.style.display = 'none';
+    injectMenu.classList.remove('hidden');
   }
 
-  function closeModal() {
-    migrationModal.classList.add('hidden');
+  function hideInjectMenu() {
+    injectMenu.classList.add('hidden');
+    actionBar.style.display = '';
+    // reset any loading states
+    injectOptions.forEach(opt => {
+      opt.disabled = false;
+      opt.textContent = opt.dataset.platform
+        ? opt.dataset.platform.charAt(0).toUpperCase() + opt.dataset.platform.slice(1)
+        : 'Copy to Clipboard';
+    });
   }
 
-  function handleMigration(platformId) {
-    closeModal();
+  function handleMigration(platformId, btn) {
     showToast('Opening ' + platformId + '…');
-    setLoading(injectBtn, true);
+    btn.disabled = true;
+    btn.textContent = 'Opening…';
 
     const payload = 'Reconstruct our current state based on this graph. '
       + 'Use it as compact context for the next task, then wait for my instruction.\n\n'
       + currentMigrationPayload;
 
     chrome.runtime.sendMessage(
-      { action: 'MIGRATE_PAYLOAD', platform: platformId, payload },
+      { action: 'routeInjection', target: platformId, payload },
       (res) => {
-        setLoading(injectBtn, false);
+        btn.disabled = false;
+        btn.textContent = platformId.charAt(0).toUpperCase() + platformId.slice(1);
         if (chrome.runtime.lastError || res?.status === 'error') {
           showToast('Migration failed: ' + (res?.reason || chrome.runtime.lastError?.message));
         } else {
           showToast('Context injected into ' + platformId);
+          hideInjectMenu();
         }
       }
     );
   }
 
-  modalCloseBtn.addEventListener('click', closeModal);
-
-  migrationModal.addEventListener('click', (e) => {
-    if (e.target === migrationModal) closeModal();
-  });
-
-  platformCards.forEach((card) => {
-    card.addEventListener('click', () => {
-      handleMigration(card.dataset.platform);
+  injectOptions.forEach((opt) => {
+    opt.addEventListener('click', () => {
+      const platform = opt.dataset.platform;
+      if (platform) {
+        handleMigration(platform, opt);
+      } else {
+        // Copy to Clipboard
+        chrome.storage.local.get('migrationState', (data) => {
+          if (!data.migrationState) {
+            showToast('Nothing to copy — extract first');
+            return;
+          }
+          const payload = generateMigrationPayload(data.migrationState);
+          navigator.clipboard.writeText(payload).then(() => {
+            showToast('Copied to clipboard');
+            hideInjectMenu();
+          }).catch(err => {
+            showToast('Clipboard failed: ' + err.message);
+          });
+        });
+      }
     });
   });
 
-  // Inject (opens migration modal)
+  injectCancel.addEventListener('click', hideInjectMenu);
+
+  // Inject
   injectBtn.addEventListener('click', () => {
     chrome.storage.local.get('migrationState', (data) => {
       if (!data.migrationState) {
@@ -387,7 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       currentMigrationPayload = JSON.stringify(data.migrationState);
-      openModal();
+      showInjectMenu();
     });
   });
 });

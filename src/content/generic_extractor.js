@@ -1,11 +1,27 @@
 (function () {
-  // not using hardcoded platform detection method
   function detectPlatform() {
     const host = window.location.hostname;
     if (host.includes('chat.openai') || host.includes('chatgpt')) return 'chatgpt';
     if (host.includes('claude')) return 'claude';
     if (host.includes('gemini')) return 'gemini';
     return 'generic';
+  }
+
+  // specific obj for contained platform
+  const PLATFORM_CONFIG = {
+    'chatgpt.com': { container: 'main', messageBlock: '[data-message-author-role]', roleAttr: 'data-message-author-role' },
+    'chat.openai.com': { container: 'main', messageBlock: '[data-message-author-role]', roleAttr: 'data-message-author-role' },
+    'claude.ai': { container: '.flex-1.overflow-y-auto, main', messageBlock: '[data-is-streaming], .font-claude-message, .font-user-message' },
+    'gemini.google.com': { container: 'main', messageBlock: 'message-content, .conversation-container > *' },
+  };
+
+  //matching the platform_config
+  function getConfigForHost() {
+    const host = window.location.hostname;
+    for (const [domain, config] of Object.entries(PLATFORM_CONFIG)) {
+      if (host.includes(domain.replace('www.', ''))) return config;
+    }
+    return null;
   }
 
   // chat for chat area to parse for a graph it 
@@ -94,7 +110,22 @@
     return best;
   }
 
-  function detectRole(element, index) {
+  function detectRole(element, index, roleAttr) {
+    // checking role attribute
+    if (roleAttr) {
+      const walk = [element, element.parentElement, element.parentElement?.parentElement];
+      for (const el of walk) {
+        if (!el) continue;
+        const val = el.getAttribute(roleAttr);
+        if (val) {
+          const v = val.toLowerCase();
+          if (v.includes('user') || v.includes('human')) return 'user';
+          if (v.includes('assistant') || v.includes('model') || v.includes('bot') || v.includes('system')) return 'assistant';
+        }
+      }
+    }
+
+    // 2. Generic attribute scan (heuristic fallback)
     const walk = [element, element.parentElement, element.parentElement?.parentElement];
     for (const el of walk) {
       if (!el || !el.attributes) continue;
@@ -104,6 +135,8 @@
         if (v.includes('assistant') || v.includes('model') || v.includes('bot')) return 'assistant';
       }
     }
+
+    // 3. Even/odd index fallback
     return index % 2 === 0 ? 'user' : 'assistant';
   }
 
@@ -150,7 +183,33 @@
     return out;
   }
 
-  function extractChatHistory() {
+  function extractChatStructure() {
+    const config = getConfigForHost();
+
+    // first check for platform_config then fallback to heuristic (prev extractor)
+    // Attempt 1: Config-driven extraction
+    if (config) {
+      try {
+        const container = document.querySelector(config.container);
+        if (container) {
+          const blocks = Array.from(container.querySelectorAll(config.messageBlock))
+            .filter((el) => el.offsetHeight > 0 && el.textContent.trim().length > 10 && !isExcludedZone(el));
+
+          if (blocks.length >= 2) {
+            const messages = [];
+            for (let i = 0; i < blocks.length; i++) {
+              const content = extractContent(blocks[i]).trim();
+              if (!content) continue;
+              messages.push({ role: detectRole(blocks[i], i, config.roleAttr), content });
+            }
+            if (messages.length >= 2) return messages;
+          }
+        }
+      } catch (_) {
+      }
+    }
+
+    //  heuristic (prev extractor)
     const container = findChatContainer();
     if (!container) return [];
 
@@ -198,7 +257,7 @@
     return messages;
   }
 
-  let result = extractChatHistory();
+  let result = extractChatStructure();
   if (!result.length) result = extractFromSelection();
   chrome.runtime.sendMessage({ action: 'EXTRACT_COMPLETE', payload: result });
 })();
