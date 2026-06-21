@@ -94,17 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function graphElements(graph) {
-    const nodes = (graph.nodes || []).map((node) => {
-      const type = node.role || node.subtype || node.type || 'artifact';
-      return {
-        data: {
-          id: node.id,
-          label: generateNodeLabel(node.content, type),
-          type: type,
-        },
-      };
-    });
-
     const edges = (graph.edges || []).map((edge, index) => ({
       data: {
         id: edge.id || edge.source + '-' + edge.target + '-' + index,
@@ -113,6 +102,26 @@ document.addEventListener('DOMContentLoaded', () => {
         label: edge.relation || '',
       },
     }));
+
+    const degreeMap = {};
+    for (const edge of edges) {
+      const src = edge.data.source;
+      const tgt = edge.data.target;
+      degreeMap[src] = (degreeMap[src] || 0) + 1;
+      degreeMap[tgt] = (degreeMap[tgt] || 0) + 1;
+    }
+
+    const nodes = (graph.nodes || []).map((node) => {
+      const type = node.role || node.subtype || node.type || 'artifact';
+      return {
+        data: {
+          id: node.id,
+          label: generateNodeLabel(node.content, type),
+          type: type,
+          degree: degreeMap[node.id] || 0,
+        },
+      };
+    });
 
     return [...nodes, ...edges];
   }
@@ -134,7 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
     cyContainer.classList.add('has-graph');
 
     if (cy) cy.destroy();
-    const textColor = cssVar('--text-primary');
     const borderColor = cssVar('--border-subtle');
     const userColor = cssVar('--node-user');
     const assistantColor = cssVar('--node-assistant');
@@ -151,16 +159,21 @@ document.addEventListener('DOMContentLoaded', () => {
           style: {
             label: 'data(label)',
             'font-family': 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-            'font-size': 10,
-            color: textColor,
-            'text-valign': 'center',
+            'font-size': 11,
+            color: '#fff',
+            'text-valign': 'bottom',
             'text-halign': 'center',
+            'text-margin-y': 6,
             'text-wrap': 'wrap',
-            'text-max-width': 72,
-            width: 42,
-            height: 42,
+            'text-max-width': 100,
+            'text-background-color': '#1e1e1e',
+            'text-background-opacity': 0.8,
+            'text-background-shape': 'roundrectangle',
+            'text-background-padding': 4,
             'border-width': 1,
             'border-color': borderColor,
+            width: 'mapData(degree, 0, 8, 26, 56)',
+            height: 'mapData(degree, 0, 8, 26, 56)',
           },
         },
         {
@@ -302,7 +315,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Inject Menu
   const injectMenu = document.getElementById('inject-menu');
   const actionBar = document.getElementById('action-bar');
   const injectOptions = document.querySelectorAll('.inject-option');
@@ -317,7 +329,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function hideInjectMenu() {
     injectMenu.classList.add('hidden');
     actionBar.style.display = '';
-    // reset any loading states
     injectOptions.forEach(opt => {
       opt.disabled = false;
       opt.textContent = opt.dataset.platform
@@ -336,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
       + currentMigrationPayload;
 
     chrome.runtime.sendMessage(
-      { action: 'routeInjection', target: platformId, payload },
+      { action: 'MIGRATE_PAYLOAD', platform: platformId, payload },
       (res) => {
         btn.disabled = false;
         btn.textContent = platformId.charAt(0).toUpperCase() + platformId.slice(1);
@@ -356,7 +367,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (platform) {
         handleMigration(platform, opt);
       } else {
-        // Copy to Clipboard
         chrome.storage.local.get('migrationState', (data) => {
           if (!data.migrationState) {
             showToast('Nothing to copy — extract first');
