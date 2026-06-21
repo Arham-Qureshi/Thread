@@ -264,6 +264,10 @@ body {
   background: var(--node-link);
 }
 
+.swatch-artifact {
+  background: var(--node-artifact);
+}
+
 #state-info {
   display: flex;
   gap: 12px;
