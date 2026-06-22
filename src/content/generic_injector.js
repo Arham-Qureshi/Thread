@@ -2,8 +2,17 @@
   if (window.__threadInjectorReady) return;
   window.__threadInjectorReady = true;
 
-  const MAX_RETRIES = 10;
-  const RETRY_INTERVAL_MS = 500;
+  const MAX_RETRIES = 30;
+  const RETRY_INTERVAL_MS = 400;
+
+  const hostname = window.location.hostname;
+
+  function getPlatform() {
+    if (hostname.includes('chatgpt') || hostname.includes('chat.openai')) return 'chatgpt';
+    if (hostname.includes('claude')) return 'claude';
+    if (hostname.includes('gemini')) return 'gemini';
+    return 'unknown';
+  }
 
   function isVisible(el) {
     const rect = el.getBoundingClientRect();
@@ -11,17 +20,55 @@
     return rect.width > 0
       && rect.height > 0
       && style.visibility !== 'hidden'
-      && style.display !== 'none';
+      && style.display !== 'none'
+      && style.opacity !== '0';
   }
 
   function isEditable(el) {
     if (el.matches('textarea')) return !el.disabled && !el.readOnly;
-    return el.matches('div[contenteditable="true"]');
+    return el.matches('div[contenteditable="true"], [contenteditable="true"]');
   }
 
   function locateInput() {
-    const candidates = Array.from(document.querySelectorAll('textarea, div[contenteditable="true"]'))
+    const platform = getPlatform();
+
+    const platformSelectors = {
+      chatgpt: [
+        '#prompt-textarea',
+        'textarea[placeholder*="Message"]',
+        'textarea[placeholder*="Ask"]',
+        'div[contenteditable="true"][role="textbox"]',
+      ],
+      claude: [
+        'div[contenteditable="true"].ProseMirror',
+        'div[contenteditable="true"][role="textbox"]',
+        'textarea',
+      ],
+      gemini: [
+        'div[contenteditable="true"][role="textbox"]',
+        'div[contenteditable="true"]:not([aria-hidden="true"])',
+      ],
+    };
+
+    if (platform !== 'unknown') {
+      const selectors = platformSelectors[platform];
+      for (const sel of selectors) {
+        const el = document.querySelector(sel);
+        if (el && isEditable(el) && isVisible(el)) return el;
+      }
+    }
+
+    const candidates = Array.from(document.querySelectorAll('textarea, div[contenteditable="true"], [contenteditable="true"]'))
       .filter((el) => isEditable(el) && isVisible(el))
+      .filter((el) => {
+        const rect = el.getBoundingClientRect();
+        if (rect.width < 100 || rect.height < 20) return false;
+        const role = el.getAttribute('role');
+        if (role && ['dialog', 'alertdialog', 'menubar', 'listbox'].includes(role)) return false;
+        const ariaHidden = el.getAttribute('aria-hidden');
+        if (ariaHidden === 'true') return false;
+        return true;
+      })
       .map((el) => {
         const rect = el.getBoundingClientRect();
         return { el, rect, score: rect.top + rect.height };
@@ -31,7 +78,6 @@
     return candidates[0]?.el || null;
   }
 
-  // handles framework hydration delays
   function locateInputWithRetry() {
     return new Promise((resolve, reject) => {
       let attempts = 0;
@@ -45,7 +91,7 @@
         attempts++;
         if (attempts >= MAX_RETRIES) {
           clearInterval(timer);
-          reject(new Error('No textarea or contenteditable input found after ' + (MAX_RETRIES * RETRY_INTERVAL_MS / 1000) + 's'));
+          reject(new Error('No chat input found after ' + (MAX_RETRIES * RETRY_INTERVAL_MS / 1000) + 's'));
         }
       }, RETRY_INTERVAL_MS);
     });
@@ -61,6 +107,18 @@
       selection.removeAllRanges();
       selection.addRange(range);
     }
+  }
+
+  function insertTextContentEditable(input, text) {
+    focusInput(input);
+    if (document.execCommand && document.execCommand('insertText', false, text)) {
+      return true;
+    }
+    const pasted = dispatchPaste(input, text);
+    if (pasted) return true;
+    input.textContent = text;
+    input.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true }));
+    return true;
   }
 
   function setNativeValue(input, text) {
@@ -81,13 +139,7 @@
     }
 
     if (input.isContentEditable) {
-      focusInput(input);
-      const pasted = dispatchPaste(input, text);
-      if (!pasted) {
-        input.textContent = text;
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-      return true;
+      return insertTextContentEditable(input, text);
     }
 
     return false;
@@ -106,25 +158,9 @@
     return input.dispatchEvent(pasteEvent);
   }
 
-  function dispatchEnter(input) {
-    const eventInit = {
-      key: 'Enter',
-      code: 'Enter',
-      keyCode: 13,
-      which: 13,
-      bubbles: true,
-      cancelable: true,
-    };
-
-    input.dispatchEvent(new KeyboardEvent('keydown', eventInit));
-    input.dispatchEvent(new KeyboardEvent('keyup', eventInit));
-  }
-
   async function injectPayload(text) {
     const input = await locateInputWithRetry();
-    focusInput(input);
     setNativeValue(input, text);
-    setTimeout(() => dispatchEnter(input), 150);
   }
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -134,6 +170,6 @@
       .then(() => sendResponse({ status: 'ok' }))
       .catch((err) => sendResponse({ status: 'error', reason: err.message }));
 
-    return true; // Keep message channel open for async response
+    return true;
   });
 })();
