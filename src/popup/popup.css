@@ -244,6 +244,11 @@ body {
   user-select: none;
 }
 
+.legend-item[data-type="user"],
+.legend-item[data-type="assistant"] {
+  cursor: default;
+}
+
 .legend-item.dimmed {
   opacity: 0.35;
 }
@@ -273,6 +278,52 @@ body {
 
 .swatch-artifact {
   background: var(--node-artifact);
+}
+
+/* ── Legend Discovery Tooltip ─────────── */
+
+#legend-tooltip {
+  position: absolute;
+  top: 20px;
+  right: 175px;
+  z-index: 11;
+  padding: 6px 12px;
+  background: rgba(30, 32, 36, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #f7fafc;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+  animation: tooltip-pulse 2s ease-in-out infinite;
+}
+
+#legend-tooltip.hidden {
+  display: none;
+}
+
+#legend-tooltip.dismissed {
+  opacity: 0;
+}
+
+#legend-tooltip::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-left: 5px solid rgba(30, 32, 36, 0.85);
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+
+@keyframes tooltip-pulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
 }
 
 #state-info {

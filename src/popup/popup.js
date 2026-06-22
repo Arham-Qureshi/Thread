@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const canvasArea = document.getElementById('canvas-area');
 
   let toastTimer = null;
+  let tooltipTimer = null;
   let cy = null;
 
   const spinnerSvg = `<svg class="spinner-icon" viewBox="0 0 50 50"><circle cx="25" cy="25" r="20"></circle></svg>`;
@@ -112,7 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const nodes = (graph.nodes || []).map((node) => {
-      const type = node.role || node.subtype || node.type || 'artifact';
+      const rawType = node.role || node.subtype || node.type || 'artifact';
+      const type = rawType === 'code' ? 'artifact' : rawType;
       return {
         data: {
           id: node.id,
@@ -246,6 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
         padding: 28,
       },
     });
+    setTimeout(() => showLegendTooltip(), 200);
   }
 
   function toggleNodeType(type) {
@@ -261,6 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function resetLegendFilters() {
+    hideLegendTooltip();
     document.querySelectorAll('#graph-legend .legend-item').forEach(item => {
       item.classList.remove('dimmed');
     });
@@ -269,11 +273,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function showLegendTooltip() {
+    const tooltip = document.getElementById('legend-tooltip');
+    if (!tooltip) return;
+    clearTimeout(tooltipTimer);
+    tooltip.classList.remove('hidden', 'dismissed');
+    tooltipTimer = setTimeout(() => {
+      tooltip.classList.add('dismissed');
+    }, 6000);
+  }
+
+  function hideLegendTooltip() {
+    const tooltip = document.getElementById('legend-tooltip');
+    if (!tooltip) return;
+    clearTimeout(tooltipTimer);
+    tooltip.classList.add('hidden', 'dismissed');
+  }
+
   function setupLegendFilters() {
     document.querySelectorAll('#graph-legend .legend-item').forEach(item => {
+      const type = item.dataset.type;
+      if (type === 'user' || type === 'assistant') return;
       item.addEventListener('click', () => {
-        const type = item.dataset.type;
-        if (!type) return;
+        hideLegendTooltip();
         toggleNodeType(type);
         item.classList.toggle('dimmed');
       });
