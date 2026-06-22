@@ -9,11 +9,16 @@
   --brand-accent-hover: #38b2ac;
 
   /* Node Categories */
-  --node-user: #3b82f6;      /* Blue */
-  --node-assistant: #a855f7; /* Purple */
-  --node-variable: #22c55e;  /* Green */
-  --node-link: #f97316;      /* Orange */
-  --node-artifact: #f7fafc;  /* Fallback */
+  --node-user: #3b82f6;
+  /* Blue */
+  --node-assistant: #a855f7;
+  /* Purple */
+  --node-variable: #22c55e;
+  /* Green */
+  --node-link: #f97316;
+  /* Orange */
+  --node-artifact: #f7fafc;
+  /* Fallback */
 
   --danger: #fc8181;
   --danger-hover: #f56565;
@@ -206,7 +211,8 @@ body {
 #graph-legend {
   position: absolute;
   top: 16px;
-  right: 64px; /* Offset to avoid expand button */
+  right: 64px;
+  /* Offset to avoid expand button */
   background: rgba(255, 255, 255, 0.4);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -242,10 +248,21 @@ body {
   box-shadow: var(--shadow-out);
 }
 
-.swatch-user { background: var(--node-user); }
-.swatch-assistant { background: var(--node-assistant); }
-.swatch-variable { background: var(--node-variable); }
-.swatch-link { background: var(--node-link); }
+.swatch-user {
+  background: var(--node-user);
+}
+
+.swatch-assistant {
+  background: var(--node-assistant);
+}
+
+.swatch-variable {
+  background: var(--node-variable);
+}
+
+.swatch-link {
+  background: var(--node-link);
+}
 
 #state-info {
   display: flex;
@@ -572,8 +589,6 @@ body {
   font-weight: 600;
   letter-spacing: -0.01em;
 }
-
-/* ── Inject Menu ──────────────────────── */
 
 #inject-menu {
   height: 72px;
