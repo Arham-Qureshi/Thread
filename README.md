@@ -1,7 +1,7 @@
 <div align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="src/icons/icon300.png">
-    <img src="src/icons/icon300.png" alt="Thread" width="150">
+    <img src="src/icons/icon300.png" alt="Thread" width="150" style="">
   </picture>
 
   <br>
