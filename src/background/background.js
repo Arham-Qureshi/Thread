@@ -125,6 +125,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
       return true;
 
+    case 'routeInjection':
     case 'MIGRATE_PAYLOAD':
       (async () => {
         const PLATFORM_URLS = {
@@ -133,9 +134,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           gemini: 'https://gemini.google.com/app',
         };
 
-        const targetUrl = PLATFORM_URLS[message.platform];
+        const platform = message.target || message.platform;
+        const targetUrl = PLATFORM_URLS[platform];
         if (!targetUrl) {
-          sendResponse({ status: 'error', reason: 'Unknown platform: ' + message.platform });
+          sendResponse({ status: 'error', reason: 'Unknown platform: ' + platform });
           return;
         }
 
