@@ -1,3 +1,5 @@
+import { extractGemini } from './gemini_extractor.js';
+
 (function () {
   function detectPlatform() {
     const host = window.location.hostname;
@@ -12,7 +14,6 @@
     'chatgpt.com': { container: 'main', messageBlock: '[data-message-author-role]', roleAttr: 'data-message-author-role' },
     'chat.openai.com': { container: 'main', messageBlock: '[data-message-author-role]', roleAttr: 'data-message-author-role' },
     'claude.ai': { container: '.flex-1.overflow-y-auto, main', messageBlock: '[data-is-streaming], .font-claude-message, .font-user-message' },
-    'gemini.google.com': { container: 'main', messageBlock: 'message-content, .conversation-container > *' },
   };
 
   //matching the platform_config
@@ -257,7 +258,13 @@
     return messages;
   }
 
-  let result = extractChatStructure();
-  if (!result.length) result = extractFromSelection();
+  let result = [];
+  if (window.location.hostname.includes('gemini.google.com')) {
+    result = extractGemini();
+  } else {
+    result = extractChatStructure();
+    if (!result.length) result = extractFromSelection();
+  }
+  
   chrome.runtime.sendMessage({ action: 'EXTRACT_COMPLETE', payload: result });
 })();
